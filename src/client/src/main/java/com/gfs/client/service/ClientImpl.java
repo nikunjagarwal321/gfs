@@ -4,7 +4,6 @@ import com.gfs.client.model.MasterClientResponse;
 import com.gfs.client.model.RequestType;
 import com.gfs.client.model.Response;
 import com.gfs.client.model.request.ClientMasterRequest;
-import com.gfs.client.utils.FileHandlingService;
 import com.gfs.client.utils.JsonHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +27,9 @@ public class ClientImpl implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("Inside ClientImpl :: run");
+         //TODO : Make requests to the master then to chunkserver based on REST APIs
+        writeChunkData("file-1","Random data is written");
+        readChunkData("file-1", 1);
     }
 
 
@@ -35,6 +37,8 @@ public class ClientImpl implements CommandLineRunner {
         log.info("Read request for filename : {} and offset : {}", filename, offset);
         ClientMasterRequest clientMasterRequest = new ClientMasterRequest(filename, offset);
         Response<MasterClientResponse> masterClientResponseResponse = masterConnectorService.sendRequestToMaster(clientMasterRequest, RequestType.READ);
+        MasterClientResponse masterClientResponse = JsonHandler.convertObjectToOtherObject(masterClientResponseResponse.getData(), MasterClientResponse.class);
+        chunkserverConnectorService.readChunkDataFromChunkServer(masterClientResponse.getChunkMetadata());
         return chunkserverConnectorService.readChunkDataFromChunkServer(masterClientResponseResponse.getData());
     }
 
@@ -48,4 +52,7 @@ public class ClientImpl implements CommandLineRunner {
             chunkserverConnectorService.writeChunkDataToChunkServer(masterClientResponse, data);
         }
     }
+
+
+
 }

@@ -13,6 +13,7 @@ import com.gfs.chunkserver.utils.JsonHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -22,6 +23,7 @@ import java.net.Socket;
 @Data
 @AllArgsConstructor
 @Slf4j
+@Service
 public class ClientRequestHandlerImpl {
 
     /**
@@ -87,7 +89,7 @@ public class ClientRequestHandlerImpl {
         ChunkCacheService chunkCacheService = ChunkCacheService.getInstance();
         ChunkCacheData chunkCacheData = new ChunkCacheData(clientChunkserverWriteRequest.getData());
         chunkCacheService.insertIntoChunkCache(clientChunkserverWriteRequest.getChunkHandle(), chunkCacheData);
-        return new ChunkserverResponse(ResponseStatus.SUCCESS, null);
+        return new ChunkserverResponse(ResponseStatus.SUCCESS, null, null);
     }
 
     /**
@@ -99,21 +101,21 @@ public class ClientRequestHandlerImpl {
      */
     private ChunkserverResponse writeAckToPrimary(ClientChunkserverWriteAckRequest clientChunkserverWriteAckRequest){
         writeToFileFromCache(clientChunkserverWriteAckRequest.getChunkHandle());
-        for (Location location : clientChunkserverWriteAckRequest.getLocations()) {
+        for (Location location : clientChunkserverWriteAckRequest.getSecondaryCSLocations()) {
             String secondaryChunkServerSocketAddress = location.getChunkserverUrl();
             ChunkserverChunkserverFinalWriteRequest chunkserverChunkserverFinalWriteRequest = new ChunkserverChunkserverFinalWriteRequest(clientChunkserverWriteAckRequest.getChunkHandle());
             try{
                 ChunkserverResponse chunkserverResponse = sendWriteFileRequestToOtherChunkServers(secondaryChunkServerSocketAddress, chunkserverChunkserverFinalWriteRequest);
                 if(!chunkserverResponse.getResponseStatus().equals(ResponseStatus.SUCCESS)) {
                     log.error("Write didn't happen in CS={}, reponse={}", location, chunkserverResponse);
-                    return new ChunkserverResponse(ResponseStatus.ERROR, null);
+                    return new ChunkserverResponse(ResponseStatus.ERROR, null, "Unsuccessful write in one of th cs");
                 }
             } catch (Exception e){
                 log.error("Error : {}", e);
-                return new ChunkserverResponse(ResponseStatus.ERROR, null);
+                return new ChunkserverResponse(ResponseStatus.ERROR, null, e.getMessage());
             }
         }
-        return new ChunkserverResponse(ResponseStatus.SUCCESS, null);
+        return new ChunkserverResponse(ResponseStatus.SUCCESS, null, null);
     }
 
     private void writeToFileFromCache(String chunkHandle) {
