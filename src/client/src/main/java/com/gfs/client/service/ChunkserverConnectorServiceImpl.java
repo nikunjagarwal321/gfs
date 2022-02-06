@@ -30,7 +30,7 @@ public class ChunkserverConnectorServiceImpl {
     }
 
     public Response readChunkDataFromChunkServer(ChunkMetadata chunkMetadata) {
-        log.info("Inside writeChunkDataToChunkServer with chunkMetadata={}",chunkMetadata);
+        log.info("Inside readChunkDataToChunkServer with chunkMetadata={}",chunkMetadata);
         HashMap<String, Location> locationHashMap = chunkMetadata.getLocations();
         ArrayList<Location> locations = getChunkserverArray(locationHashMap);
         if(locations.size() == 0)
