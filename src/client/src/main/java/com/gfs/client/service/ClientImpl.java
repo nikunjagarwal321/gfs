@@ -27,20 +27,19 @@ public class ClientImpl implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-         //TODO : Make requests to the master then to chunkserver based on REST APIs
-//        writeChunkData("file-1","Random data");
-        readChunkData("file-1", 1);
+        log.info("Inside ClientImpl :: run");
     }
 
 
-    public void readChunkData(String filename, int offset) {
+    public Response readChunkData(String filename, int offset) {
+        log.info("Read request for filename : {} and offset : {}", filename, offset);
         ClientMasterRequest clientMasterRequest = new ClientMasterRequest(filename, offset);
         Response<MasterClientResponse> masterClientResponseResponse = masterConnectorService.sendRequestToMaster(clientMasterRequest, RequestType.READ);
-        chunkserverConnectorService.readChunkDataFromChunkServer(masterClientResponseResponse.getData());
+        return chunkserverConnectorService.readChunkDataFromChunkServer(masterClientResponseResponse.getData());
     }
 
     public void writeChunkData(String filename, String data) {
-        // implement breaking file into chunks
+        log.info("Write request for filename : {} and data : {}", filename, data);
         int numberOfOffsets = FileHandlingService.splitFileToChunks(filename, chunkSize);
         for(int offset = 1;offset <= numberOfOffsets; offset++) {
             ClientMasterRequest clientMasterRequest = new ClientMasterRequest(filename, offset);
