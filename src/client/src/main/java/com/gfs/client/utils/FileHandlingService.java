@@ -5,10 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Service class to handle File Operations
@@ -22,35 +22,49 @@ public class FileHandlingService {
     private final static String basePath = "./files";
 
     /**
-     * Function to split a given file to multiple chunks
-     * @param FilePath Name of the file to split
-     * @param chunksize size of individual chunks
-     * @return number of chunks of size 'chunksize'
+     * Split a file into multiples files.
+     *
+     * @param fileName   Name of file to be split.
+     * @param chunkSize maximum number of MB per file.
+     * @throws IOException
      */
-    public static int splitFileToChunks(String FilePath, int chunksize) {
-        FilePath = basePath + FilePath;
-        int currentChunk = 0;
-        int offset = 1, data;
-        try {
-            File filename = new File(FilePath);
-            InputStream infile = new BufferedInputStream(new FileInputStream(filename));
-            data = infile.read();
-            while (data != -1) {
-                filename = new File(FilePath +":" + offset);
-                OutputStream outfile = new BufferedOutputStream(new FileOutputStream(filename));
-                while (data != -1 && currentChunk < chunksize) {
-                    outfile.write(data);
-                    currentChunk++;
-                    data = infile.read();
-                }
-                currentChunk = 0;
-                outfile.close();
-                offset++;
+    public static long splitFileToChunks(final String fileName, final int chunkSize) throws IOException {
+
+        final long sourceSize = Files.size(Paths.get(fileName));
+        final long bytesPerSplit = 1024L * 1024L * chunkSize;
+        final long numSplits = sourceSize / bytesPerSplit;
+        final long remainingBytes = sourceSize % bytesPerSplit;
+        int position = 0;
+
+        try (RandomAccessFile sourceFile = new RandomAccessFile(fileName, "r");
+             FileChannel sourceChannel = sourceFile.getChannel()) {
+
+            for (; position < numSplits; position++) {
+                //write multipart files.
+                writePartToFile(bytesPerSplit, position * bytesPerSplit, sourceChannel, position, fileName);
             }
 
-        } catch (Exception e) {
-            log.error("Exception in Client FileHandlingService :: splitFiletoChunks");
+            if (remainingBytes > 0) {
+                writePartToFile(remainingBytes, position * bytesPerSplit, sourceChannel, (int)numSplits, fileName);
+                return numSplits + 1;
+            }
         }
-        return offset;
+        return numSplits;
+    }
+
+    private static void writePartToFile(long byteSize, long position, FileChannel sourceChannel, int offset, String filePath) throws IOException {
+        Path fileName = Paths.get(basePath, filePath + ":" + offset);
+        try (RandomAccessFile toFile = new RandomAccessFile(fileName.toFile(), "rw");
+             FileChannel toChannel = toFile.getChannel()) {
+            sourceChannel.position(position);
+            toChannel.transferFrom(sourceChannel, 0, byteSize);
+        }
+    }
+
+    public static void appendDataToFile(String fileName, String data) throws IOException{
+        try(RandomAccessFile sourceFile = new RandomAccessFile(fileName, "rw")) {
+            sourceFile.seek(sourceFile.length());
+            sourceFile.writeUTF(data);
+        }
     }
 }

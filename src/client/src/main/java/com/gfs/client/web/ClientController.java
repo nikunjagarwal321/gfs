@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+
 @RestController
 public class ClientController {
 
@@ -22,7 +24,7 @@ public class ClientController {
     }
 
     @PostMapping("/writefile")
-    public ResponseEntity<Response> writeFile(@RequestBody WebRequest webRequest) {
+    public ResponseEntity<Response> writeFile(@RequestBody WebRequest webRequest) throws IOException {
         client.writeChunkData(webRequest.getFilename(), webRequest.getData());
         return ResponseEntity.noContent().build();
     }

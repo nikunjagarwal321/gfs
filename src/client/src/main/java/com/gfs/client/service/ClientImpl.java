@@ -12,6 +12,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+
+
 @Component
 @Slf4j
 public class ClientImpl implements CommandLineRunner {
@@ -41,11 +44,11 @@ public class ClientImpl implements CommandLineRunner {
         return chunkserverConnectorService.readChunkDataFromChunkServer(masterClientResponse.getChunkMetadata());
     }
 
-    public void writeChunkData(String filename, String data) {
+    public void writeChunkData(String filename, String data) throws IOException {
         log.info("Write request for filename : {} and data : {}", filename, data);
-        //TODO : split data into chunks
-        int numberOfOffsets = FileHandlingService.splitFileToChunks(filename, chunkSize);
-        for(int offset = 1; offset <= numberOfOffsets; offset++) {
+        FileHandlingService.appendDataToFile(filename, data);
+        long numberOfOffsets = FileHandlingService.splitFileToChunks(filename, chunkSize);
+        for(int offset = 0; offset < numberOfOffsets; offset++) {
             ClientMasterRequest clientMasterRequest = new ClientMasterRequest(filename, offset);
             Response<MasterClientResponse> masterClientResponseResponse = masterConnectorService.sendRequestToMaster(clientMasterRequest, RequestType.WRITE);
             MasterClientResponse masterClientResponse = JsonHandler.convertObjectToOtherObject(masterClientResponseResponse.getData(), MasterClientResponse.class);
