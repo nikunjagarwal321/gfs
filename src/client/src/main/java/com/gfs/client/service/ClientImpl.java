@@ -29,7 +29,7 @@ public class ClientImpl implements CommandLineRunner {
     int chunkSize;
 
     @Override
-    public void run(String... args) {
+    public void run(String... args) throws IOException {
         log.info("Inside ClientImpl :: run");
         writeChunkData("file-1","Random data is written");
         readChunkData("file-1", 1);
